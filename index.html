@@ -23,7 +23,7 @@
   body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
        padding:22px 18px 60px}
   .caja{max-width:1040px;margin:0 auto}
-  h1{font-size:23px;margin:0 0 16px;letter-spacing:-.3px}
+  h1{font-size:23px;margin:0 0 3px;letter-spacing:-.3px}
   .sub{color:var(--muted);font-size:13px;margin:0 0 18px}
   .sub b{color:var(--ink);font-weight:600}
 
@@ -40,6 +40,7 @@
   .res .v small.bien{font-weight:700;color:var(--ok)} .res .v small.malm{font-weight:700;color:var(--mal)}
   .res .v small.medio{font-weight:700;color:var(--casi)}
   .res .eq b{color:var(--ink)}
+  .res .eq.noop{margin-top:1px;font-size:11.5px}
   button.res{font:inherit;color:inherit;text-align:left;border:0;border-left:1px solid var(--line);
              background:var(--panel);cursor:pointer;width:100%}
   button.res:first-child{border-left:0}
@@ -184,7 +185,14 @@ const fmt = (v, d = 1) => v == null ? '—' : v.toLocaleString('es-CL', {minimum
 
 // (28-09-2026, Luis) Sin la linea de datos/metas bajo el titulo: las metas
 // ya estan en cada columna. Queda el espacio para separar del titulo.
-$('sub').style.display = 'none';
+// (28-09-2026, 2a) vuelve una linea corta: solo mes, dias y fecha de los
+// datos (lo primero que pregunta la gerencia).
+(() => {
+  const mes = D.rei_mes ? new Date(D.rei_mes + '-15').toLocaleDateString('es-CL', {month: 'long', year: 'numeric'}) : '';
+  const Mes = mes ? mes.charAt(0).toUpperCase() + mes.slice(1) : '';
+  $('sub').innerHTML = [Mes, D.dias ? `${D.dias} días trabajados` : '', `datos al ${D.desc}`]
+    .filter(Boolean).join(' · ');
+})();
 
 const sups = ['Todos', ...[...new Set(D.filas.map(f => f.s))].sort()];
 $('filtros').innerHTML = sups.map(s => `<button class="chip${s === SUP ? ' on' : ''}" data-s="${s}">${s}</button>`).join('');
@@ -221,7 +229,9 @@ const IDX = {};                 // nombre -> fila, para abrir el detalle
 function reiTxt(f){
   const r = f.rei; if(!r) return '';
   const n = r.items.length;
-  return n ? `<span class="ver">Ver ${n} reiterado${n === 1 ? '' : 's'}</span>` : 'sin reiterados en el Módulo';
+  // (28-09-2026) sin reiterados no se escribe nada: "6,9% fallas / sin
+  // reiterados" se leia como una contradiccion en una presentacion
+  return n ? `<span class="ver">Ver ${n} reiterado${n === 1 ? '' : 's'}</span>` : '';
 }
 function abrirRei(nombre){
   const f = IDX[nombre]; if(!f) return;
@@ -291,7 +301,7 @@ function fila(f){
       : (p != null && D.mcal && p <= D.mcal.FTTH + D.cerca.cal_puntos ? 'casi' : 'no');
     // (28-09-2026) sin cantidad oficial, se ofrece la del Modulo, con su nombre
     const det2 = det || reiTxt(f);
-    cCal = celda(eCal, val, det2, 'Calidad', null, f.rei ? f.n : null);
+    cCal = celda(eCal, val, det2, 'Calidad', null, (f.rei && f.rei.items.length) ? f.n : null);
   }
 
   // Asistencia: dias presente de los dias del periodo
@@ -380,6 +390,7 @@ function pintar(){
     if(k === 'okcr' && D.cr_sin_datos)
       return `<div class="res sd"><div class="v">Sin datos</div><div class="l">calidad reactiva · la página pone 100 a todos</div></div>`;
     const si = c(k), p = n ? 100 * si / n : 0, faltan = n - si;
+    const noopF = L.filter(f => f.noop && !f[k]).length;
     // (28-09-2026, Luis: "mucho rojo") tres tramos: verde 100%, ambar desde
     // 80%, rojo solo bajo 80%. El texto "faltan" va en negro, no en rojo.
     const cls = p >= 100 ? 'bien' : p >= 80 ? 'medio' : 'malm';
@@ -388,6 +399,7 @@ function pintar(){
       <div class="l">${l}${k === 'ok' && D.cr_sin_datos ? ' (sin contar calidad)' : ''}</div>
       <div class="avance"><i class="${cls}" style="width:${Math.min(100, p)}%"></i></div>
       <div class="eq">meta 100% · ${faltan ? `<b>faltan ${faltan} técnico${faltan === 1 ? '' : 's'}</b> <span class="ver">ver</span>` : '<b class="bien">todos cumplen</b>'}</div>
+      ${noopF ? `<div class="eq noop">incluye ${noopF} no operativo${noopF === 1 ? '' : 's'}</div>` : ''}
     </button>`;
   }).join('');
 
