@@ -57,7 +57,7 @@
   .ejemplo{background:var(--casi-bg);color:var(--casi);border:1px solid var(--casi);border-radius:10px;
            padding:8px 12px;font-size:13px;font-weight:600;margin:0 0 14px}
   .tabla{width:100%}
-  .fil{display:grid;grid-template-columns:minmax(170px,1.35fr) repeat(3,minmax(118px,1fr)) minmax(104px,.8fr);
+  .fil{display:grid;grid-template-columns:minmax(170px,1.3fr) minmax(150px,1.2fr) repeat(2,minmax(118px,1fr)) minmax(104px,.8fr);
        gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
   .fil.cab{border-top:0;padding:0 0 6px;align-items:end}
   .cab div{font-size:12px;font-weight:700;color:var(--ink)}
@@ -115,7 +115,7 @@
 
 <section id="s-aus">
   <h2>Sin producción que medir</h2>
-  <p class="nota">0 o 1 día presente, o sin productos: licencias, vacaciones o ausencias. No se mezclan con los de baja producción.</p>
+  <p class="nota">0 o 1 día presente, o sin puntos: licencias, vacaciones o ausencias. No se mezclan con los de baja producción.</p>
   <div id="aus"></div>
 </section>
 
@@ -132,7 +132,7 @@ const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => v == null ? '—' : v.toLocaleString('es-CL', {minimumFractionDigits: d, maximumFractionDigits: d});
 
 $('sub').innerHTML = `Datos descargados el <b>${D.desc}</b> · período de <b>${D.dias ?? '—'} días</b>`
-  + ` · metas: <b>${D.pd} productos por día</b> y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas en FTTH</b>`
+  + ` · metas: <b>${D.pd} puntos por día trabajado</b> (${D.pd * (D.dias || 0)} en ${D.dias ?? '—'} días) y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas en FTTH</b>`
   + ` (<b>${fmt(D.mcal.HFC, 2)}%</b> en HFC)`
   + (D.desc_ant ? ` · se compara con la descarga del ${D.desc_ant}` : '');
 
@@ -169,8 +169,13 @@ function fila(f){
   const tope = D.pd * 1.5, ancho = Math.min(100, 100 * (f.pdia || 0) / tope), meta = 100 * D.pd / tope;
   const ePx = f.okpx ? 'si' : (f.px != null && f.px >= D.cerca.px ? 'casi' : 'no');
   const barra = `<div class="mini" style="color:var(${ePx === 'si' ? '--ok' : ePx === 'casi' ? '--casi' : '--mal'})"><i style="width:${ancho}%"></i><b style="left:${meta}%"></b></div>`;
-  const cProd = celda(ePx, `${fmt(f.pdia, 2)} por día`,
-    `${f.px == null ? '—' : fmt(f.px, 0) + '%'} de la meta`, 'Producción', barra);
+  // (28-09-2026, Luis) En pantalla se dice PUNTOS (la pagina y la empresa
+  // les dicen "productos"; es lo mismo: 1 por cada Play).
+  // Se muestra el TOTAL: puntos hechos contra la meta
+  // total del periodo (4 por cada dia trabajado). El por dia queda abajo.
+  const metaTot = D.pd * (f.pres || 0);
+  const cProd = celda(ePx, `${fmt(f.prod)} de ${fmt(metaTot, 0)}`,
+    `${fmt(f.pdia, 2)} por día · ${f.px == null ? '—' : fmt(f.px, 0) + '%'} de la meta`, 'Producción', barra);
 
   // Calidad: % de actividades con falla
   let cCal;
@@ -203,7 +208,7 @@ function fila(f){
 function cabecera(){
   const mc = D.mcal ? `máx. ${fmt(D.mcal.FTTH, 2)}% fallas` : '';
   return `<div class="fil cab"><div>Técnico</div>
-    <div>Producción<small>meta ${D.pd} por día</small></div>
+    <div>Producción<small>puntos hechos de la meta</small></div>
     <div>Calidad<small>${mc}</small></div>
     <div>Asistencia<small>todos los días</small></div>
     <div>Semana anterior<small>¿cumplió las 3?</small></div></div>`;
@@ -245,7 +250,7 @@ function pintar(){
 
   $('s-aus').style.display = aus.length ? '' : 'none';
   $('aus').innerHTML = aus.map(f => `<div class="aus-f"><div class="nom">${f.n}<span>${f.s}</span></div>
-    <div class="det">${f.pres ?? 0} de ${f.dias ?? '—'} días presente · ${fmt(f.prod)} productos</div></div>`).join('');
+    <div class="det">${f.pres ?? 0} de ${f.dias ?? '—'} días presente · ${fmt(f.prod)} puntos</div></div>`).join('');
 
   $('t-si').textContent = `Cumplen · ${si.length} técnico${si.length === 1 ? '' : 's'}`;
   $('si').innerHTML = si.length ? cabecera() + si.map(fila).join('') : '';
