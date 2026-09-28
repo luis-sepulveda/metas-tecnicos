@@ -178,8 +178,8 @@ function fila(f){
   // FALTO (o cuanto paso) de la meta, en puntos, y el %.
   const dif = (f.prod || 0) - metaTot;
   const pctTxt = f.px == null ? '' : ` · ${fmt(f.px, 0)}%`;
-  const detProd = dif < 0 ? `le faltaron ${fmt(-dif)} punto${-dif === 1 ? '' : 's'}${pctTxt}`
-                          : `${fmt(dif)} sobre la meta${pctTxt}`;
+  // (28-09-2026, Luis) Abajo solo el promedio diario y el %.
+  const detProd = `promedio ${fmt(f.pdia, 2)}${pctTxt}`;
   const cProd = celda(ePx, `${fmt(f.prod)} de ${fmt(metaTot, 0)}`, detProd, 'Producción', barra);
 
   // Calidad: % de actividades con falla
