@@ -35,7 +35,28 @@
   .res .v{font-size:26px;font-weight:700;letter-spacing:-.5px}
   .res .v small{font-size:14px;color:var(--muted);font-weight:500}
   .res .l{font-size:12.5px;color:var(--muted)}
-  .res.tres{background:var(--ok-bg)} .res.tres .v{color:var(--ok)}
+  .res .eq{font-size:12px;color:var(--muted);margin-top:5px}
+  .res .bien{color:var(--ok)} .res .malm{color:var(--mal)}
+  .res .v small.bien{font-weight:700;color:var(--ok)} .res .v small.malm{font-weight:700;color:var(--mal)}
+  button.res{font:inherit;color:inherit;text-align:left;border:0;border-left:1px solid var(--line);
+             background:var(--panel);cursor:pointer;width:100%}
+  button.res:first-child{border-left:0}
+  button.res.tres{background:var(--bg)}
+  button.res:hover{filter:brightness(.97)}
+  button.res:focus-visible{outline:2px solid var(--ink);outline-offset:-3px}
+  .lista-f{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:8px 0;
+           border-top:1px solid var(--line)}
+  .lista-f:first-of-type{border-top:0}
+  .lista-f .v2{font-weight:700;text-align:right;font-size:13px}
+  .lista-f .chips2{grid-column:1 / -1;display:flex;gap:4px;flex-wrap:wrap}
+  .chip2{font-size:11px;font-weight:700;border-radius:5px;padding:2px 7px;background:var(--mal-bg);color:var(--mal)}
+  .chip2.gris{background:var(--bg);color:var(--muted)}
+  .grupo{font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 2px}
+  .grupo:first-child{margin-top:0}
+  .avance{height:6px;background:rgba(127,127,127,.18);border-radius:3px;margin-top:8px;overflow:hidden}
+  .avance i{display:block;height:100%;border-radius:3px;background:var(--mal)}
+  .avance i.bien{background:var(--ok)}
+  .res.tres{background:var(--bg)}   /* resaltada, pero sin verde: el color lo da el % */
   .res.sd .v{color:var(--muted);font-size:20px;padding-top:5px}
   .pdia.cal{margin-top:1px} .pdia.cal.hay{color:var(--mal)}
 
@@ -297,15 +318,74 @@ function cabecera(){
 
 D.filas.forEach(f => { IDX[f.n] = f; });
 
+// ---- Tarjetas activas (28-09-2026): tocar una muestra quienes NO la cumplen
+function abrirTarjeta(k){
+  const L = D.filas.filter(f => SUP === 'Todos' || f.s === SUP);
+  const titulos = {okpx: 'producción', okcr: 'calidad reactiva', okas: 'asistencia', ok: 'las 3 metas'};
+  const no = L.filter(f => !f[k]);
+  const valor = f => {
+    if(k === 'okpx') return !(f.pres > 0) ? 'no trabajó en el período'
+      : `${fmt(f.prod)} de ${fmt(D.pd * (f.pres || 0), 0)} · ${f.px == null ? '—' : fmt(f.px, 0) + '%'}`;
+    if(k === 'okcr') return f.calp != null ? `${fmt(f.calp)}% fallas` : 'sin dato';
+    if(k === 'okas') return `${f.pres ?? 0} de ${f.dias ?? '—'} días`;
+    return '';
+  };
+  const orden = {
+    okpx: (a, b) => (a.px ?? -1) - (b.px ?? -1),
+    okcr: (a, b) => (b.calp ?? -1) - (a.calp ?? -1),
+    okas: (a, b) => (a.pres ?? 0) - (b.pres ?? 0),
+    ok: (a, b) => ((!b.okpx) + (!b.okcr) + (!b.okas)) - ((!a.okpx) + (!a.okcr) + (!a.okas)) || (a.px ?? -1) - (b.px ?? -1),
+  }[k];
+  const fila = f => {
+    const chips = [];
+    if(f.noop) chips.push('<span class="chip2 gris">No operativo</span>');
+    if(k === 'ok'){
+      if(!f.okpx) chips.push('<span class="chip2">Producción</span>');
+      if(!f.okcr && !D.cr_sin_datos) chips.push('<span class="chip2">Calidad</span>');
+      if(!f.okas) chips.push('<span class="chip2">Asistencia</span>');
+    }
+    return `<div class="lista-f"><div class="nom">${f.n}<span>${f.s}</span></div><div class="v2">${valor(f)}</div>`
+      + (chips.length ? `<div class="chips2">${chips.join('')}</div>` : '') + `</div>`;
+  };
+  document.getElementById('dlg-t').textContent = `No cumplen ${titulos[k]} · ${no.length} técnico${no.length === 1 ? '' : 's'}`;
+  document.getElementById('dlg-s').textContent = (SUP === 'Todos' ? 'Todo el plantel' : 'Equipo de ' + SUP)
+    + (k === 'ok' ? ' · primero los que fallan más metas' : ' · del más lejos al más cerca de la meta');
+  let h = '';
+  if(!no.length) h = '<p class="gris">Todos cumplen.</p>';
+  else if(SUP === 'Todos'){
+    [...new Set(no.map(f => f.s))].sort().forEach(s => {
+      const g = no.filter(f => f.s === s).sort(orden);
+      h += `<div class="grupo">${s} · ${g.length}</div>` + g.map(fila).join('');
+    });
+  } else h = no.slice().sort(orden).map(fila).join('');
+  document.getElementById('dlg-c').innerHTML = h;
+  document.getElementById('dlg').showModal();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-card]'); if(b) abrirTarjeta(b.dataset.card);
+});
+
 function pintar(){
   const L = D.filas.filter(f => SUP === 'Todos' || f.s === SUP);
   const n = L.length, c = k => L.filter(f => f[k]).length;
   const pct = x => n ? ` <small>${Math.round(1000 * x / n) / 10}%</small>` : '';
+  // (28-09-2026, Luis) La meta de CADA tarjeta es que el 100% de los
+  // tecnicos la cumpla (pedido de la jefatura). Cada tarjeta muestra que %
+  // del plantel cumple, una barra hasta el 100% y cuantos tecnicos faltan.
   $('resumen').innerHTML = [
     ['okpx', 'cumplen producción'], ['okcr', 'cumplen calidad reactiva'], ['okas', 'cumplen asistencia'], ['ok', 'cumplen las 3']
-  ].map(([k, l], i) => (k === 'okcr' && D.cr_sin_datos)
-      ? `<div class="res sd"><div class="v">Sin datos</div><div class="l">calidad reactiva · la página pone 100 a todos</div></div>`
-      : `<div class="res${i === 3 ? ' tres' : ''}"><div class="v">${c(k)}/${n}${pct(c(k))}</div><div class="l">${l}${k === 'ok' && D.cr_sin_datos ? ' (sin contar calidad)' : ''}</div></div>`).join('');
+  ].map(([k, l], i) => {
+    if(k === 'okcr' && D.cr_sin_datos)
+      return `<div class="res sd"><div class="v">Sin datos</div><div class="l">calidad reactiva · la página pone 100 a todos</div></div>`;
+    const si = c(k), p = n ? 100 * si / n : 0, faltan = n - si;
+    const cls = p >= 100 ? 'bien' : 'malm';
+    return `<button type="button" class="res${i === 3 ? ' tres' : ''}" data-card="${k}" aria-label="Ver quiénes no ${l.replace('cumplen', 'cumplen')}">
+      <div class="v">${si}/${n} <small class="${cls}">${fmt(p, 1)}%</small></div>
+      <div class="l">${l}${k === 'ok' && D.cr_sin_datos ? ' (sin contar calidad)' : ''}</div>
+      <div class="avance"><i class="${cls}" style="width:${Math.min(100, p)}%"></i></div>
+      <div class="eq">meta 100% · ${faltan ? `<b class="malm">faltan ${faltan} técnico${faltan === 1 ? '' : 's'}</b> <span class="ver">ver</span>` : '<b class="bien">todos cumplen</b>'}</div>
+    </button>`;
+  }).join('');
 
   // primero los que fallan MAS metas; a igual cantidad, los que repiten y
   // despues el de menor produccion
