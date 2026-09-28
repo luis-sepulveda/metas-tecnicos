@@ -190,7 +190,9 @@ function fila(f){
     // primero el % Calidad de la tabla; si no viene, el del Excel de calidad
     const p = f.calp != null ? f.calp : (c && c.am ? (c.pm != null ? c.pm : 100 * c.fm / c.am) : null);
     const val = p != null ? `${fmt(p)}% fallas` : (f.okcr ? 'Cumple' : 'No cumple');
-    const det = c && c.am ? `${fmt(c.fm, 0)} de ${fmt(c.am, 0)} actividades` : '';
+    // (28-09-2026, Luis) la cantidad de REITERADOS (Q Fallas del Excel de
+    // calidad reactiva). La tabla principal solo trae el %, no la cantidad.
+    const det = c && c.am ? `${fmt(c.fm, 0)} reiterado${c.fm === 1 ? '' : 's'} de ${fmt(c.am, 0)} actividades` : '';
     const eCal = f.okcr ? 'si'
       : (p != null && D.mcal && p <= D.mcal.FTTH + D.cerca.cal_puntos ? 'casi' : 'no');
     cCal = celda(eCal, val, det, 'Calidad');
