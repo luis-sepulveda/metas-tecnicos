@@ -160,8 +160,7 @@ const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => v == null ? '—' : v.toLocaleString('es-CL', {minimumFractionDigits: d, maximumFractionDigits: d});
 
 $('sub').innerHTML = `Datos descargados el <b>${D.desc}</b> · período de <b>${D.dias ?? '—'} días</b>`
-  + ` · metas: <b>${D.pd * (D.dias || 0)} puntos en ${D.dias ?? '—'} días</b> (${D.pd} por cada día trabajado) y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas en FTTH</b>`
-  + ` (<b>${fmt(D.mcal.HFC, 2)}%</b> en HFC)`
+  + ` · metas: <b>${D.pd * (D.dias || 0)} puntos en ${D.dias ?? '—'} días</b> (${D.pd} por cada día trabajado) y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas</b> (FTTH y NFTT)`
   + (D.desc_ant ? ` · se compara con la descarga del ${D.desc_ant}` : '');
 
 const sups = ['Todos', ...[...new Set(D.filas.map(f => f.s))].sort()];
