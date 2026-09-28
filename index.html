@@ -132,7 +132,7 @@ const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => v == null ? '—' : v.toLocaleString('es-CL', {minimumFractionDigits: d, maximumFractionDigits: d});
 
 $('sub').innerHTML = `Datos descargados el <b>${D.desc}</b> · período de <b>${D.dias ?? '—'} días</b>`
-  + ` · metas: <b>${D.pd} puntos por día trabajado</b> (${D.pd * (D.dias || 0)} en ${D.dias ?? '—'} días) y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas en FTTH</b>`
+  + ` · metas: <b>${D.pd * (D.dias || 0)} puntos en ${D.dias ?? '—'} días</b> (${D.pd} por cada día trabajado) y calidad máxima <b>${fmt(D.mcal.FTTH, 2)}% de fallas en FTTH</b>`
   + ` (<b>${fmt(D.mcal.HFC, 2)}%</b> en HFC)`
   + (D.desc_ant ? ` · se compara con la descarga del ${D.desc_ant}` : '');
 
@@ -174,8 +174,13 @@ function fila(f){
   // Se muestra el TOTAL: puntos hechos contra la meta
   // total del periodo (4 por cada dia trabajado). El por dia queda abajo.
   const metaTot = D.pd * (f.pres || 0);
-  const cProd = celda(ePx, `${fmt(f.prod)} de ${fmt(metaTot, 0)}`,
-    `${fmt(f.pdia, 2)} por día · ${f.px == null ? '—' : fmt(f.px, 0) + '%'} de la meta`, 'Producción', barra);
+  // (28-09-2026, Luis) Sin el "por dia", que enredaba: abajo va cuanto le
+  // FALTO (o cuanto paso) de la meta, en puntos, y el %.
+  const dif = (f.prod || 0) - metaTot;
+  const pctTxt = f.px == null ? '' : ` · ${fmt(f.px, 0)}%`;
+  const detProd = dif < 0 ? `le faltaron ${fmt(-dif)} punto${-dif === 1 ? '' : 's'}${pctTxt}`
+                          : `${fmt(dif)} sobre la meta${pctTxt}`;
+  const cProd = celda(ePx, `${fmt(f.prod)} de ${fmt(metaTot, 0)}`, detProd, 'Producción', barra);
 
   // Calidad: % de actividades con falla
   let cCal;
