@@ -404,14 +404,14 @@ const EVO = [['px', 'Producción', 'var(--ok)', 1], ['cr', 'Calidad', 'var(--mal
              ['as', 'Asistencia', 'var(--casi)', 3], ['t3', 'Las 3', 'var(--ink)', 4]];
 function pctFoto(foto){
   // (29-09-2026, Luis) sin los no operativos, igual que las tarjetas. En
-  // CALIDAD si cuenta el no operativo que trabajo en el periodo (x[6]).
+  // CALIDAD y PRODUCCION si cuenta el no operativo que trabajo (x[6]).
   const base = foto.t.filter(x => SUP === 'Todos' || x[0] === SUP);
   const t = base.filter(x => !x[5]);
   const tCal = base.filter(x => !x[5] || x[6]);
   const n = t.length; if(!n) return null;
   const r = {n};
   EVO.forEach(([k, , , i]) => {
-    const g = k === 'cr' ? tCal : t;
+    const g = (k === 'cr' || k === 'px') ? tCal : t;
     r[k] = (k === 'cr' && foto.sd) || !g.length ? null : 100 * g.filter(x => x[i]).length / g.length;
   });
   return r;
@@ -470,10 +470,14 @@ function pintarEvolucion(){
 }
 
 // (29-09-2026, Luis) Quien cuenta en cada meta: los operativos. En CALIDAD
-// cuenta tambien el no operativo que TRABAJO en el periodo (mas de 1 dia
-// presente): su % de fallas es de trabajo que si hizo (caso Elias Armijo,
-// operativo en el periodo y hoy con licencia).
-const cuenta = (f, k) => !f.noop || (k === 'okcr' && (f.pres || 0) > 1);
+// y PRODUCCION cuenta tambien el no operativo que TRABAJO en el periodo (mas
+// de 1 dia presente): su % de fallas y sus puntos son de trabajo que si hizo
+// (caso Elias Armijo, operativo en el periodo y hoy con licencia). La
+// produccion ya se mide sobre los dias presentes (4 puntos x dia trabajado),
+// o sea hasta su ultimo dia. Asistencia y "las 3" no lo cuentan: los dias de
+// licencia lo dejarian mal sin serlo.
+const TRABAJO_CUENTA = ['okcr', 'okpx'];
+const cuenta = (f, k) => !f.noop || (TRABAJO_CUENTA.includes(k) && (f.pres || 0) > 1);
 
 function pintar(){
   pintarEvolucion();
